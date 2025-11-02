@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Movie Recommendations</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h2>🎬 Movie Recommendation System</h2>
+
+  <div style="position: relative;">
+    <input
+      type="text"
+      id="movie"
+      placeholder="Enter movie name..."
+      oninput="showSuggestions(event)"
+      autocomplete="off"
+    />
+    <div id="suggestions" class="suggestion-box"></div>
+  </div>
+
+  <button onclick="getRecommendations()">Search</button>
+  <button onclick="randomRecommendations()">randomRecommendations</button>
+  <div id="movies" style="margin-top: 30px;"></div>
+
+  <div id="results" style="margin-top: 30px;"></div>
+
+  <script>
+    // --- Fetch movie recommendations ---
+    async function getRecommendations() {
+      const movieName = document.getElementById("movie").value;
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = "Loading...";
+
+      try {
+        const response = await fetch("http://127.0.0.1:8000/recommend", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ movie_name: movieName })
+        });
+        const data = await response.json();
+
+        resultsDiv.innerHTML = ""; // clear loading
+
+        if (data.error) {
+          resultsDiv.innerHTML = `<p style="color:red;">${data.error}</p>`;
+          return;
+        }
+
+        data.recommendations.forEach(movie => {
+          const movieDiv = document.createElement("div");
+          movieDiv.style.marginBottom = "20px";
+
+          const title = document.createElement("h3");
+          title.textContent = movie.title;
+          movieDiv.appendChild(title);
+
+          if (movie.poster) {
+            const img = document.createElement("img");
+            img.src = movie.poster;
+            img.alt = movie.title;
+            img.style.width = "200px";
+            movieDiv.appendChild(img);
+          } else {
+            const noImg = document.createElement("p");
+            noImg.textContent = "Poster not available";
+            movieDiv.appendChild(noImg);
+          }
+
+          resultsDiv.appendChild(movieDiv);
+        });
+      } catch (err) {
+        resultsDiv.innerHTML = `<p style="color:red;">Error: ${err}</p>`;
+      }
+    }
+
+    // --- Live search suggestions ---
+    async function showSuggestions(event) {
+      const query = event.target.value.trim();
+      const suggestionBox = document.getElementById("suggestions");
+
+      if (!query) {
+        suggestionBox.innerHTML = "";
+        return;
+      }
+
+      try {
+        // Use GET (recommended)
+        const response = await fetch(`http://127.0.0.1:8000/search?query=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        suggestionBox.innerHTML = "";
+
+        if (data.suggestions && data.suggestions.length > 0) {
+          data.suggestions.forEach(title => {
+            const div = document.createElement("div");
+            div.textContent = title;
+            div.onclick = () => {
+              document.getElementById("movie").value = title;
+              suggestionBox.innerHTML = "";
+              getRecommendations(); // automatically fetch recommendations
+            };
+            suggestionBox.appendChild(div);
+          });
+        } else {
+          suggestionBox.innerHTML = "<div style='padding:8px;color:#aaa;'>No matches found</div>";
+        }
+      } catch (error) {
+        console.error("Error fetching suggestions:", error);
+      }
+    }
+    async function randomRecommendations() {
+      const response = await fetch("http://127.0.0.1:8000/movie_of_the_day");
+      const data = await response.json();
+      document.getElementById("movie").value = data.movie_of_the_day;
+      getRecommendations(); // automatically fetch recommendations
+    }
+  </script>
+</body>
+</html>
