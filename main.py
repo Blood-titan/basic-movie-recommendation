@@ -113,7 +113,6 @@ def search_movies(query: str = ""):
 
 @app.get("/movie_of_the_day")
 def movie_of_the_day():
-
     random.seed(12)
     return random.choice(movies["title"].tolist())
 
@@ -121,8 +120,11 @@ def movie_of_the_day():
 @app.post("/genre/{genre}")
 def get_genre(genre: str = ""):
     random.seed(4)
-    return random.choice(movies[movies["genre_names"].str.contains("action", case=False, na=False)]["title"].tolist())
-    
+    return random.choice(
+        movies[movies["genre_names"].str.contains("action", case=False, na=False)][
+            "title"
+        ].tolist()
+    )
 
 
 if __name__ == "__main__":
